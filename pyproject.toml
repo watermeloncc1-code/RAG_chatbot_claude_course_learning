@@ -19,14 +19,20 @@ dev = [
     "black>=26.10.1",
     "flake8>=7.5.0",
     "isort>=9.0.2",
+    "httpx>=0.28.1",
     "pytest>=9.2.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
+addopts = "-ra --strict-markers"
 markers = [
     "live: calls the real Anthropic API using the key in .env (deselect with -m 'not live')",
+    "api: FastAPI endpoint tests against an in-memory test app",
+]
+filterwarnings = [
+    "ignore:resource_tracker. There appear to be.*",
 ]
 
 [tool.black]
