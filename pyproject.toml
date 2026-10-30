@@ -16,6 +16,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "black>=26.10.1",
+    "flake8>=7.5.0",
+    "isort>=9.0.2",
     "pytest>=9.2.0",
 ]
 
@@ -25,3 +28,13 @@ pythonpath = ["backend"]
 markers = [
     "live: calls the real Anthropic API using the key in .env (deselect with -m 'not live')",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]
+extend-exclude = "backend/chroma_db"
+
+[tool.isort]
+profile = "black"
+src_paths = ["backend"]
+extend_skip = ["backend/chroma_db"]

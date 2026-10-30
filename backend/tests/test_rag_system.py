@@ -1,12 +1,13 @@
 """Tests for how RAGSystem handles content-related questions."""
+
 from dataclasses import replace
 from unittest.mock import patch
 
 import pytest
+from conftest import MCP_COURSE, text_response, tool_use_response
 
 from config import config
 from rag_system import RAGSystem
-from conftest import MCP_COURSE, text_response, tool_use_response
 
 
 @pytest.fixture
@@ -33,7 +34,9 @@ def content_answer(rag):
         text_response("Lesson 1 introduces MCP."),
     ]
     session_id = rag.session_manager.create_session()
-    answer, sources = rag.query("What is covered in lesson 1 of the MCP course?", session_id)
+    answer, sources = rag.query(
+        "What is covered in lesson 1 of the MCP course?", session_id
+    )
     return answer, sources, session_id
 
 
@@ -74,8 +77,16 @@ class TestContentQuery:
 
 def test_two_searches_return_sources_from_both(rag):
     rag.client.messages.create.side_effect = [
-        tool_use_response("search_course_content", {"query": "intro", "course_name": "MCP", "lesson_number": 1}, "toolu_1"),
-        tool_use_response("search_course_content", {"query": "intro", "course_name": "MCP", "lesson_number": 2}, "toolu_2"),
+        tool_use_response(
+            "search_course_content",
+            {"query": "intro", "course_name": "MCP", "lesson_number": 1},
+            "toolu_1",
+        ),
+        tool_use_response(
+            "search_course_content",
+            {"query": "intro", "course_name": "MCP", "lesson_number": 2},
+            "toolu_2",
+        ),
         text_response("Lessons 1 and 2 compared."),
     ]
     answer, sources = rag.query("Compare lessons 1 and 2 of the MCP course")
@@ -100,4 +111,6 @@ def test_live_content_query_end_to_end(chroma_copy, require_api_key):
     rag = RAGSystem(replace(config, CHROMA_PATH=chroma_copy))
     answer, sources = rag.query("What is covered in lesson 1 of the MCP course?")
     assert answer.strip()
-    assert sources, "a content question should search the course index and return sources"
+    assert (
+        sources
+    ), "a content question should search the course index and return sources"

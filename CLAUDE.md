@@ -22,7 +22,13 @@ uv run <command>            # run anything in the project env, e.g. uv run pytho
 - The first startup downloads the `all-MiniLM-L6-v2` embedding model and embeds all of `docs/` (528 chunks across 4 courses), so it can take a minute before requests are served. Later startups reuse `backend/chroma_db/`.
 - `--reload` watches only `backend/`. Editing `.env` (repo root) or `docs/` does not trigger a reload; restart the server.
 - Tests: `uv run pytest` from the repo root (pytest config in `pyproject.toml`, tests in `backend/tests/`). Tests marked `live` call the real API with the `.env` key; skip them with `uv run pytest -m 'not live'`. Integration tests run against a temp copy of `backend/chroma_db/`.
-- There is no linter or build step. The root `main.py` is an unused placeholder.
+- Code quality: black (formatting), isort (import order, `profile = "black"`), flake8 (lint). Config is in `pyproject.toml` (black, isort) and `.flake8`. There is no build step. The root `main.py` is an unused placeholder.
+  ```bash
+  ./scripts/format.sh    # rewrite files: isort, then black
+  ./scripts/lint.sh      # check only: isort --check, black --check, flake8 (non-zero exit on failure)
+  ./scripts/quality.sh   # lint.sh, then uv run pytest -m 'not live' (extra args go to pytest)
+  ```
+  Run `./scripts/format.sh` before committing Python changes. In `.flake8`, `per-file-ignores` allows E402 in `app.py`, which sets a `warnings` filter before importing chromadb.
 
 ## Architecture
 

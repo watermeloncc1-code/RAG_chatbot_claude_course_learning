@@ -54,3 +54,13 @@ The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`
 
+
+## Development
+
+Code is formatted with [black](https://black.readthedocs.io/) and [isort](https://pycqa.github.io/isort/) and linted with [flake8](https://flake8.pycqa.org/). The tools are installed as dev dependencies by `uv sync`.
+
+```bash
+./scripts/format.sh    # auto-format all Python code
+./scripts/lint.sh      # check formatting and lint without changing files
+./scripts/quality.sh   # run lint.sh, then the test suite (excluding live API tests)
+```

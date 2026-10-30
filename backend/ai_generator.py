@@ -1,9 +1,11 @@
+from typing import Any, Dict, List, Optional, Tuple
+
 import anthropic
-from typing import List, Optional, Dict, Any, Tuple
+
 
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
-    
+
     # Static system prompt to avoid rebuilding on each call
     SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to a comprehensive search tool for course information.
 
@@ -36,38 +38,38 @@ Provide only the direct answer to what was asked.
     def __init__(self, api_key: str, model: str):
         self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
-        
+
         # Pre-build base API parameters (current models reject non-default temperature
         # and think before answering, so leave headroom beyond the answer itself)
-        self.base_params = {
-            "model": self.model,
-            "max_tokens": 4096
-        }
-    
-    def generate_response(self, query: str,
-                         conversation_history: Optional[str] = None,
-                         tools: Optional[List] = None,
-                         tool_manager=None) -> str:
+        self.base_params = {"model": self.model, "max_tokens": 4096}
+
+    def generate_response(
+        self,
+        query: str,
+        conversation_history: Optional[str] = None,
+        tools: Optional[List] = None,
+        tool_manager=None,
+    ) -> str:
         """
         Generate AI response with optional tool usage and conversation context.
-        
+
         Args:
             query: The user's question or request
             conversation_history: Previous messages for context
             tools: Available tools the AI can use
             tool_manager: Manager to execute tools
-            
+
         Returns:
             Generated response as string
         """
-        
+
         # Build system content efficiently - avoid string ops when possible
         system_content = (
             f"{self.SYSTEM_PROMPT}\n\nPrevious conversation:\n{conversation_history}"
-            if conversation_history 
+            if conversation_history
             else self.SYSTEM_PROMPT
         )
-        
+
         # Prepare API call parameters efficiently. The API requires `tools` on every
         # call whose messages contain tool_use/tool_result blocks, so keep them throughout.
         api_params = {**self.base_params, "system": system_content}
@@ -80,7 +82,11 @@ Provide only the direct answer to what was asked.
         # Each round: run the requested tools, then let Claude see the results. After
         # MAX_TOOL_ROUNDS or a failed tool call, the next call must answer without tools.
         rounds = 0
-        while response.stop_reason == "tool_use" and tool_manager and rounds < self.MAX_TOOL_ROUNDS:
+        while (
+            response.stop_reason == "tool_use"
+            and tool_manager
+            and rounds < self.MAX_TOOL_ROUNDS
+        ):
             rounds += 1
             # Pass the content back verbatim; thinking blocks must stay intact
             messages.append({"role": "assistant", "content": response.content})
@@ -92,7 +98,9 @@ Provide only the direct answer to what was asked.
 
         return self._extract_text(response)
 
-    def _create(self, api_params: Dict[str, Any], messages: List[Dict], tools, allow_tools: bool):
+    def _create(
+        self, api_params: Dict[str, Any], messages: List[Dict], tools, allow_tools: bool
+    ):
         """Make one API call; tool_choice is auto while more tool rounds are allowed"""
         params = {**api_params, "messages": list(messages)}
         if tools:
@@ -103,7 +111,7 @@ Provide only the direct answer to what was asked.
     def _extract_text(response) -> str:
         """Join the text blocks of a response, skipping thinking and tool_use blocks"""
         return "".join(block.text for block in response.content if block.type == "text")
-    
+
     @staticmethod
     def _execute_tools(response, tool_manager) -> Tuple[List[Dict[str, Any]], bool]:
         """
@@ -123,7 +131,9 @@ Provide only the direct answer to what was asked.
                 continue
             result = {"type": "tool_result", "tool_use_id": content_block.id}
             try:
-                result["content"] = tool_manager.execute_tool(content_block.name, **content_block.input)
+                result["content"] = tool_manager.execute_tool(
+                    content_block.name, **content_block.input
+                )
             except Exception as e:
                 # Every tool_use still needs a tool_result; report the error to Claude
                 result["content"] = f"Tool error: {e}"
