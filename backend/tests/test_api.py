@@ -1,6 +1,6 @@
 """Tests for the FastAPI endpoints, run against the test app in conftest.py."""
-import pytest
 
+import pytest
 from conftest import INDEX_HTML, MCP_COURSE
 
 pytestmark = pytest.mark.api
@@ -15,7 +15,12 @@ class TestQueryEndpoint:
         assert resp.status_code == 200
         assert resp.json() == {
             "answer": "Lesson 1 introduces MCP.",
-            "sources": [{"label": f"{MCP_COURSE} - Lesson 1", "link": "https://example.com/lesson1"}],
+            "sources": [
+                {
+                    "label": f"{MCP_COURSE} - Lesson 1",
+                    "link": "https://example.com/lesson1",
+                }
+            ],
             "session_id": "session_1",
         }
 
@@ -26,7 +31,9 @@ class TestQueryEndpoint:
         mock_rag_system.query.assert_called_once_with(QUESTION, "session_1")
 
     def test_reuses_given_session(self, api_client, mock_rag_system):
-        resp = api_client.post("/api/query", json={"query": QUESTION, "session_id": "session_7"})
+        resp = api_client.post(
+            "/api/query", json={"query": QUESTION, "session_id": "session_7"}
+        )
 
         assert resp.json()["session_id"] == "session_7"
         mock_rag_system.session_manager.create_session.assert_not_called()
@@ -47,7 +54,9 @@ class TestQueryEndpoint:
 
     def test_non_json_body_is_rejected(self, api_client, mock_rag_system):
         resp = api_client.post(
-            "/api/query", content="not json", headers={"Content-Type": "application/json"}
+            "/api/query",
+            content="not json",
+            headers={"Content-Type": "application/json"},
         )
 
         assert resp.status_code == 422
@@ -67,17 +76,25 @@ class TestCoursesEndpoint:
         resp = api_client.get("/api/courses")
 
         assert resp.status_code == 200
-        assert resp.json() == {"total_courses": 2, "course_titles": [MCP_COURSE, "Other Course"]}
+        assert resp.json() == {
+            "total_courses": 2,
+            "course_titles": [MCP_COURSE, "Other Course"],
+        }
 
     def test_empty_catalog(self, api_client, mock_rag_system):
-        mock_rag_system.get_course_analytics.return_value = {"total_courses": 0, "course_titles": []}
+        mock_rag_system.get_course_analytics.return_value = {
+            "total_courses": 0,
+            "course_titles": [],
+        }
 
         resp = api_client.get("/api/courses")
 
         assert resp.json() == {"total_courses": 0, "course_titles": []}
 
     def test_analytics_error_becomes_500_with_detail(self, api_client, mock_rag_system):
-        mock_rag_system.get_course_analytics.side_effect = Exception("chroma unavailable")
+        mock_rag_system.get_course_analytics.side_effect = Exception(
+            "chroma unavailable"
+        )
 
         resp = api_client.get("/api/courses")
 
@@ -91,7 +108,9 @@ class TestSessionEndpoint:
 
         assert resp.status_code == 200
         assert resp.json() == {"status": "cleared"}
-        mock_rag_system.session_manager.clear_session.assert_called_once_with("session_1")
+        mock_rag_system.session_manager.clear_session.assert_called_once_with(
+            "session_1"
+        )
 
 
 class TestStaticRoot:

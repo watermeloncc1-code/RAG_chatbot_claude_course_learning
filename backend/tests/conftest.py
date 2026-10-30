@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
+from typing import List, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -8,7 +9,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
-from typing import List, Optional
 
 from config import config
 from vector_store import SearchResults, VectorStore
@@ -90,6 +90,7 @@ def require_api_key():
 # backend/app.py builds a real RAGSystem and mounts ../frontend at import time,
 # so the API tests use this copy instead. Keep models and endpoints in sync with app.py.
 
+
 class QueryRequest(BaseModel):
     query: str
     session_id: Optional[str] = None
@@ -145,7 +146,9 @@ def create_test_app(rag_system, static_dir):
     return app
 
 
-INDEX_HTML = "<!DOCTYPE html><html><body><h1>Course Materials Assistant</h1></body></html>"
+INDEX_HTML = (
+    "<!DOCTYPE html><html><body><h1>Course Materials Assistant</h1></body></html>"
+)
 
 
 @pytest.fixture

@@ -38,9 +38,9 @@ filterwarnings = [
 [tool.black]
 line-length = 88
 target-version = ["py313"]
-extend-exclude = "backend/chroma_db"
+extend-exclude = '(backend/chroma_db|\.trees)'
 
 [tool.isort]
 profile = "black"
 src_paths = ["backend"]
-extend_skip = ["backend/chroma_db"]
+extend_skip = ["backend/chroma_db", ".trees"]
