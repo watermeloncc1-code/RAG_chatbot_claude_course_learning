@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ragchatbot",
+      "runtimeExecutable": "/Users/xichen/.local/bin/uv",
+      "runtimeArgs": ["run", "--directory", "backend", "uvicorn", "app:app", "--reload", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}
