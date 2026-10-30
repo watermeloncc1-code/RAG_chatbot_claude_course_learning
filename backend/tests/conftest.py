@@ -4,6 +4,11 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.testclient import TestClient
+from pydantic import BaseModel
+from typing import List, Optional
 
 from config import config
 from vector_store import VectorStore, SearchResults
@@ -71,3 +76,94 @@ def real_store(chroma_copy):
 def require_api_key():
     if not config.ANTHROPIC_API_KEY:
         pytest.skip("ANTHROPIC_API_KEY is not set in .env")
+
+
+# ---------- API test app ----------
+# backend/app.py builds a real RAGSystem and mounts ../frontend at import time,
+# so the API tests use this copy instead. Keep models and endpoints in sync with app.py.
+
+class QueryRequest(BaseModel):
+    query: str
+    session_id: Optional[str] = None
+
+
+class Source(BaseModel):
+    label: str
+    link: Optional[str] = None
+
+
+class QueryResponse(BaseModel):
+    answer: str
+    sources: List[Source]
+    session_id: str
+
+
+class CourseStats(BaseModel):
+    total_courses: int
+    course_titles: List[str]
+
+
+def create_test_app(rag_system, static_dir):
+    app = FastAPI()
+
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        try:
+            session_id = request.session_id
+            if not session_id:
+                session_id = rag_system.session_manager.create_session()
+            answer, sources = rag_system.query(request.query, session_id)
+            return QueryResponse(answer=answer, sources=sources, session_id=session_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        try:
+            analytics = rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"],
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.delete("/api/session/{session_id}")
+    async def clear_session(session_id: str):
+        rag_system.session_manager.clear_session(session_id)
+        return {"status": "cleared"}
+
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+    return app
+
+
+INDEX_HTML = "<!DOCTYPE html><html><body><h1>Course Materials Assistant</h1></body></html>"
+
+
+@pytest.fixture
+def mock_rag_system():
+    """RAGSystem double; override query/get_course_analytics per test."""
+    rag = MagicMock()
+    rag.session_manager.create_session.return_value = "session_1"
+    rag.query.return_value = (
+        "Lesson 1 introduces MCP.",
+        [{"label": f"{MCP_COURSE} - Lesson 1", "link": "https://example.com/lesson1"}],
+    )
+    rag.get_course_analytics.return_value = {
+        "total_courses": 2,
+        "course_titles": [MCP_COURSE, "Other Course"],
+    }
+    return rag
+
+
+@pytest.fixture
+def static_dir(tmp_path):
+    """Stand-in for frontend/."""
+    (tmp_path / "index.html").write_text(INDEX_HTML)
+    return str(tmp_path)
+
+
+@pytest.fixture
+def api_client(mock_rag_system, static_dir):
+    with TestClient(create_test_app(mock_rag_system, static_dir)) as client:
+        yield client
