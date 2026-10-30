@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, newChatButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, newChatButton, themeToggle, totalCourses, courseTitles;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -14,9 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput = document.getElementById('chatInput');
     sendButton = document.getElementById('sendButton');
     newChatButton = document.getElementById('newChatButton');
+    themeToggle = document.getElementById('themeToggle');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
     
+    updateThemeToggleLabel();
     setupEventListeners();
     createNewSession();
     loadCourseStats();
@@ -32,8 +34,10 @@ function setupEventListeners() {
 
     // New chat
     newChatButton.addEventListener('click', startNewChat);
-    
-    
+
+    // Theme toggle
+    themeToggle.addEventListener('click', toggleTheme);
+
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -42,6 +46,34 @@ function setupEventListeners() {
             sendMessage();
         });
     });
+}
+
+
+// Theme Functions
+function getCurrentTheme() {
+    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+function toggleTheme() {
+    const root = document.documentElement;
+    const nextTheme = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+
+    // Animate colors only while switching, so page load and hovers are unaffected
+    root.classList.add('theme-transition');
+    root.dataset.theme = nextTheme;
+    try {
+        localStorage.setItem('theme', nextTheme);
+    } catch (e) {
+        // Ignore: the theme still applies for this page view
+    }
+    updateThemeToggleLabel();
+    setTimeout(() => root.classList.remove('theme-transition'), 300);
+}
+
+function updateThemeToggleLabel() {
+    const label = getCurrentTheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    themeToggle.setAttribute('aria-label', label);
+    themeToggle.setAttribute('title', label);
 }
 
 
